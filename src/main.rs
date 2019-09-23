@@ -1,6 +1,6 @@
 /*
-[ ] Create a new file and open it
-[ ] Open an existing file
+[x] Create a new file and open it
+[x] Open an existing file
 [ ] Navigate to a location in an open file
 [ ] Insert a character at the current location
 [ ] Delete a character at the current location
@@ -20,13 +20,21 @@ use termion::{
 
 type Buffer = Vec<String>;
 
+fn open_file(path: &str) -> io::Result<fs::File> {
+  fs::OpenOptions::new().read(true).write(true).create(true).open(path)
+}
+
 fn read_file(path: &str) -> io::Result<Buffer> {
-  let file = fs::OpenOptions::new().read(true).write(true).create(true).open(path)?;
+  let file = open_file(path)?;
   BufReader::new(file).lines().collect()
 }
 
 fn write_file(path: &str, buf: &Buffer) -> io::Result<()> {
-  Ok(())
+  let mut file = open_file(path)?;
+  for line in buf {
+    writeln!(file, "{}", line)?;
+  }
+  file.flush()
 }
 
 type Cursor = (usize, usize);
