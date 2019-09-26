@@ -199,7 +199,7 @@ fn update_screen(
   scr.flush()
 }
 
-fn edit_buffer(buf: &mut Buffer) -> io::Result<()> {
+fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
   let mut scr = init_screen()?;
   let mut cur = Cursor::new();
   let mut size = get_screen_size()?;
@@ -214,6 +214,7 @@ fn edit_buffer(buf: &mut Buffer) -> io::Result<()> {
       Key::Down => move_cursor_down(&mut cur, buf, &size),
       Key::Char(ch) => insert_at(ch, &mut cur, buf),
       Key::Backspace => delete_at(&mut cur, buf),
+      Key::Ctrl('s') => write_file(path, buf)?,
       _ => break,
     }
     update_screen(&mut scr, &cur, buf, &size)?;
@@ -225,8 +226,7 @@ fn main() -> io::Result<()> {
   match env::args().skip(1).next() {
     Some(path) => {
       let mut buf = read_file(&path)?;
-      edit_buffer(&mut buf)?;
-      write_file(&path, &buf)
+      edit_buffer(&path, &mut buf)
     }
     None => Ok(()),
   }
