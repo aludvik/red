@@ -85,8 +85,12 @@ fn write_line_to_screen(
 ) -> io::Result<()> {
   let bytes = line.as_bytes();
   for i in buffer_char_range(cur, size) {
+    if i >= line.len() {
+      break;
+    }
     write!(scr, "{}", bytes[i])?;
   }
+  writeln!(scr)?;
   Ok(())
 }
 
