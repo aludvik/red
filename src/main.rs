@@ -201,7 +201,6 @@ fn edit_buffer(buf: &mut Buffer) -> io::Result<()> {
   for res in io::stdin().keys() {
     let key = res?;
     size = get_screen_size()?;
-    update_screen(&mut scr, &cur, buf, &size)?;
     match key {
       Key::Left => move_cursor_left(&mut cur, buf, &size),
       Key::Right => move_cursor_right(&mut cur, buf, &size),
@@ -211,6 +210,7 @@ fn edit_buffer(buf: &mut Buffer) -> io::Result<()> {
       Key::Backspace => delete_at(&mut cur, buf),
       _ => break,
     }
+    update_screen(&mut scr, &cur, buf, &size)?;
   }
   Ok(())
 }
