@@ -108,27 +108,16 @@ fn write_buffer_to_screen(
   buf: &Buffer,
   size: &Size,
 ) -> io::Result<()> {
+  write!(scr, "{}", termion::cursor::Goto(1, 1))?;
   for i in buffer_line_range(cur, size) {
     write_line_to_screen(scr, cur, &buf[i], size)?;
   }
   let (r, c) = cursor_screen_position(cur);
-  write!(scr, "{}", termion::cursor::Goto(c, r))?;
-  scr.flush()
+  write!(scr, "{}", termion::cursor::Goto(c, r))
 }
 
 fn clear_screen(scr: &mut Screen) -> io::Result<()> {
-  write!(scr, "{}{}", termion::clear::All, termion::cursor::Goto(1, 1))?;
-  scr.flush()
-}
-
-fn update_screen(
-  scr: &mut Screen,
-  cur: &Cursor,
-  buf: &Buffer,
-  size: &Size,
-) -> io::Result<()> {
-  clear_screen(scr)?;
-  write_buffer_to_screen(scr, cur, buf, size)
+  write!(scr, "{}", termion::clear::All)
 }
 
 fn init_screen() -> io::Result<Screen> {
@@ -193,6 +182,17 @@ type Key = termion::event::Key;
 
 fn get_screen_size() -> io::Result<Size> {
   termion::terminal_size().map(|(cols, rows)| Size::new(rows, cols))
+}
+
+fn update_screen(
+  scr: &mut Screen,
+  cur: &Cursor,
+  buf: &Buffer,
+  size: &Size,
+) -> io::Result<()> {
+  clear_screen(scr)?;
+  write_buffer_to_screen(scr, cur, buf, size)?;
+  scr.flush()
 }
 
 fn edit_buffer(buf: &mut Buffer) -> io::Result<()> {
