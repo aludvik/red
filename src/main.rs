@@ -158,14 +158,16 @@ fn move_cursor_left(cur: &mut Cursor, _buf: &Buffer, size: &Size) {
 }
 
 fn move_cursor_right(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if cur.col < buf[cur.row].len() - 1 {
+  if cur.col + 1 < buf[cur.row].len() {
     cur.col += 1;
   }
   align_cursor(cur, size);
 }
 
 fn truncate_cursor_to_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if cur.col >= buf[cur.row].len() {
+  if buf[cur.row].len() == 0 {
+    cur.col = 0;
+  } else if cur.col >= buf[cur.row].len() {
     cur.col = buf[cur.row].len() - 1;
   }
   align_cursor(cur, size);
@@ -180,7 +182,7 @@ fn move_cursor_up(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 }
 
 fn move_cursor_down(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if cur.row < buf.len() - 1 {
+  if cur.row + 1 < buf.len() {
     cur.row += 1;
   }
   truncate_cursor_to_line(cur, buf, size);
