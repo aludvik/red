@@ -88,7 +88,7 @@ fn write_line_to_screen(
     if i >= line.len() {
       break;
     }
-    write!(scr, "{}", bytes[i])?;
+    write!(scr, "{}", bytes[i] as char)?;
   }
   writeln!(scr)?;
   Ok(())
