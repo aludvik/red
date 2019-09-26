@@ -12,6 +12,7 @@ extern crate termion;
 use std::env;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
+use std::ops::Range;
 
 use termion::{
   raw::IntoRawMode,
@@ -45,6 +46,12 @@ struct Cursor {
   top: usize,
 }
 
+impl Cursor {
+  fn new() -> Self {
+    Cursor{col: 0, row: 0, left: 0, top: 0}
+  }
+}
+
 fn insert_at(ch: char, cur: &mut Cursor, buf: &mut Buffer) {
   buf[cur.row].insert(cur.col, ch)
 }
@@ -56,8 +63,18 @@ fn delete_at(cur: &mut Cursor, buf: &mut Buffer) {
 type Screen = termion::raw::RawTerminal<io::Stdout>;
 
 struct Size {
-  cols: usize,
   rows: usize,
+  cols: usize,
+}
+
+impl Size {
+  fn new<T: Into<usize>>(rows: T, cols: T) -> Self {
+    Size{rows: rows.into(), cols: cols.into()}
+  }
+}
+
+fn buffer_char_range(cur: &Cursor, size: &Size) -> Range<usize> {
+  cur.left..(cur.left + size.cols)
 }
 
 fn write_line_to_screen(
@@ -67,10 +84,18 @@ fn write_line_to_screen(
   size: &Size,
 ) -> io::Result<()> {
   let bytes = line.as_bytes();
-  for i in cur.left..(cur.left + size.cols) {
+  for i in buffer_char_range(cur, size) {
     write!(scr, "{}", bytes[i])?;
   }
   Ok(())
+}
+
+fn buffer_line_range(cur: &Cursor, size: &Size) -> Range<usize> {
+  cur.top..(cur.top + size.rows)
+}
+
+fn cursor_screen_position(cur: &Cursor) -> (u16, u16) {
+  ((cur.row - cur.top + 1) as u16, (cur.col - cur.left + 1) as u16)
 }
 
 fn write_buffer_to_screen(
@@ -79,13 +104,11 @@ fn write_buffer_to_screen(
   buf: &Buffer,
   size: &Size,
 ) -> io::Result<()> {
-  for i in cur.top..(cur.top + size.rows) {
+  for i in buffer_line_range(cur, size) {
     write_line_to_screen(scr, cur, &buf[i], size)?;
   }
-  write!(scr, "{}", termion::cursor::Goto(
-    (cur.row - cur.top + 1) as u16,
-    (cur.col - cur.left + 1) as u16,
-  ))?;
+  let (r, c) = cursor_screen_position(cur);
+  write!(scr, "{}", termion::cursor::Goto(c, r))?;
   scr.flush()
 }
 
@@ -162,13 +185,16 @@ fn move_cursor_down(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 
 type Key = termion::event::Key;
 
+fn get_screen_size() -> io::Result<Size> {
+  termion::terminal_size().map(|(cols, rows)| Size::new(rows, cols))
+}
+
 fn edit_buffer(buf: &mut Buffer) -> io::Result<()> {
   let mut scr = init_screen()?;
-  let mut cur = Cursor{col: 0, row: 0, left: 0, top: 0};
+  let mut cur = Cursor::new();
   for res in io::stdin().keys() {
     let key = res?;
-    let size = termion::terminal_size()
-      .map(|(rows, cols)| Size{rows: rows as usize, cols: cols as usize})?;
+    let size = get_screen_size()?;
     update_screen(&mut scr, &cur, buf, &size)?;
     match key {
       Key::Left => move_cursor_left(&mut cur, buf, &size),
@@ -191,5 +217,72 @@ fn main() -> io::Result<()> {
       write_file(&path, &buf)
     }
     None => Ok(()),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn check_range(
+    cur: &Cursor,
+    size: &Size,
+    l: Range<usize>,
+    c: Range<usize>,
+  ) {
+    assert_eq!(l, buffer_line_range(cur, size));
+    assert_eq!(c, buffer_char_range(cur, size));
+  }
+
+  fn apply_and_check(
+    cur: &mut Cursor,
+    buf: &Buffer,
+    size: &Size,
+    f: fn(cur: &mut Cursor, buf: &Buffer, size: &Size),
+    l: Range<usize>,
+    c: Range<usize>,
+  ) {
+    f(cur, buf, size);
+    check_range(cur, size, l, c);
+  }
+
+  #[test]
+  fn test_size() {
+    let size = get_screen_size().unwrap();
+    assert!(size.cols > size.rows);
+  }
+
+  #[test]
+  fn test_cursor() {
+    let buf: Buffer = vec![
+      "1234".into(),
+      "2345".into(),
+      "3456".into(),
+      "4567".into(),
+      "5678".into(),
+    ];
+    let size = Size::new(3usize, 2usize);
+    let mut cur = Cursor::new();
+
+    check_range(&cur, &size, 0..3, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_left, 0..3, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_up, 0..3, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_right, 0..3, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_right, 0..3, 1..3);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_right, 0..3, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_right, 0..3, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_down, 0..3, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_down, 0..3, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_down, 1..4, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_down, 2..5, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_down, 2..5, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_left, 2..5, 2..4);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_left, 2..5, 1..3);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_left, 2..5, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_up, 2..5, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_up, 2..5, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_up, 1..4, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_up, 0..3, 0..2);
+    apply_and_check(&mut cur, &buf, &size, move_cursor_up, 0..3, 0..2);
   }
 }
