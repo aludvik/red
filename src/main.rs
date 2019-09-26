@@ -196,9 +196,11 @@ fn get_screen_size() -> io::Result<Size> {
 fn edit_buffer(buf: &mut Buffer) -> io::Result<()> {
   let mut scr = init_screen()?;
   let mut cur = Cursor::new();
+  let mut size = get_screen_size()?;
+  update_screen(&mut scr, &cur, buf, &size)?;
   for res in io::stdin().keys() {
     let key = res?;
-    let size = get_screen_size()?;
+    size = get_screen_size()?;
     update_screen(&mut scr, &cur, buf, &size)?;
     match key {
       Key::Left => move_cursor_left(&mut cur, buf, &size),
