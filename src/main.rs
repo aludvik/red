@@ -90,7 +90,7 @@ fn write_line_to_screen(
     }
     write!(scr, "{}", bytes[i] as char)?;
   }
-  writeln!(scr)?;
+  write!(scr, "\n\r")?;
   Ok(())
 }
 
