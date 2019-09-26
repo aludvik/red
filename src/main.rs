@@ -90,7 +90,6 @@ fn write_line_to_screen(
     }
     write!(scr, "{}", bytes[i] as char)?;
   }
-  write!(scr, "\n\r")?;
   Ok(())
 }
 
@@ -109,8 +108,13 @@ fn write_buffer_to_screen(
   size: &Size,
 ) -> io::Result<()> {
   write!(scr, "{}", termion::cursor::Goto(1, 1))?;
-  for i in buffer_line_range(cur, size) {
+  let range = buffer_line_range(cur, size);
+  let last = range.end - 1;
+  for i in range {
     write_line_to_screen(scr, cur, &buf[i], size)?;
+    if i != last {
+      write!(scr, "\n\r")?;
+    }
   }
   let (r, c) = cursor_screen_position(cur);
   write!(scr, "{}", termion::cursor::Goto(c, r))
