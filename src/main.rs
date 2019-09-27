@@ -52,12 +52,14 @@ impl Cursor {
   }
 }
 
-fn insert_at(ch: char, cur: &mut Cursor, buf: &mut Buffer) {
+fn insert_at(ch: char, cur: &Cursor, buf: &mut Buffer) {
   buf[cur.row].insert(cur.col, ch)
 }
 
-fn delete_at(cur: &mut Cursor, buf: &mut Buffer) {
-  buf[cur.row].remove(cur.col);
+fn delete_at(cur: &Cursor, buf: &mut Buffer) {
+  if cur.col > 0 {
+    buf[cur.row].remove(cur.col);
+  }
 }
 
 type Screen = termion::raw::RawTerminal<io::Stdout>;
@@ -132,8 +134,8 @@ fn align_cursor(cur: &mut Cursor, size: &Size) {
   if cur.col < cur.left {
     cur.left = cur.col;
   }
-  if cur.col > cur.left + size.cols - 1 {
-    cur.left = cur.col - size.cols + 1;
+  if cur.col > cur.left + size.cols {
+    cur.left = cur.col - size.cols;
   }
   if cur.row < cur.top {
     cur.top = cur.row;
@@ -151,17 +153,15 @@ fn move_cursor_left(cur: &mut Cursor, _buf: &Buffer, size: &Size) {
 }
 
 fn move_cursor_right(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if cur.col + 1 < buf[cur.row].len() {
+  if cur.col < buf[cur.row].len() {
     cur.col += 1;
   }
   align_cursor(cur, size);
 }
 
 fn truncate_cursor_to_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if buf[cur.row].len() == 0 {
-    cur.col = 0;
-  } else if cur.col >= buf[cur.row].len() {
-    cur.col = buf[cur.row].len() - 1;
+  if cur.col > buf[cur.row].len() {
+    cur.col = buf[cur.row].len();
   }
   align_cursor(cur, size);
 }
@@ -212,8 +212,14 @@ fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
       Key::Right => move_cursor_right(&mut cur, buf, &size),
       Key::Up => move_cursor_up(&mut cur, buf, &size),
       Key::Down => move_cursor_down(&mut cur, buf, &size),
-      Key::Char(ch) => insert_at(ch, &mut cur, buf),
-      Key::Backspace => delete_at(&mut cur, buf),
+      Key::Char(ch) => {
+        insert_at(ch, &cur, buf);
+        move_cursor_right(&mut cur, buf, &size);
+      }
+      Key::Backspace => {
+        delete_at(&cur, buf);
+        move_cursor_left(&mut cur, buf, &size);
+      }
       Key::Ctrl('s') => write_file(path, buf)?,
       _ => break,
     }
