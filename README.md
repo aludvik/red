@@ -19,3 +19,14 @@ Red is a text editor. This file was written with red.
 4. Most Features
 
    Red has most, but not all, of the features you expect in a text editor.
+
+## FAQ
+
+1. Why write a new text editor?
+
+   I love vim, but sometimes it is a bit much. Red is a love letter to vim
+   asking it why everything had to become so complicated.
+
+2. Why is it called red?
+
+   Red is an acronym for R(ed) Ed(itor).
