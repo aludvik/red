@@ -128,6 +128,9 @@ fn write_buffer_to_screen(
   let range = buffer_line_range(cur, size);
   let last = range.end - 1;
   for i in range {
+    if i >= buf.len() {
+      break;
+    }
     write_line_to_screen(scr, cur, &buf[i], size)?;
     if i != last {
       write!(scr, "\n\r")?;
