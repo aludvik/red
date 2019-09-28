@@ -1,12 +1,3 @@
-/*
-[x] Create a new file and open it
-[x] Open an existing file
-[x] Navigate to a location in an open file
-[x] Insert a character at the current location
-[x] Delete a character at the current location
-[x] Write an open file out
-*/
-
 extern crate termion;
 
 use std::env;
