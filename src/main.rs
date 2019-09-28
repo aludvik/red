@@ -168,11 +168,13 @@ fn move_cursor_left(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 }
 
 fn move_cursor_right(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if cur.col < buf[cur.row].len() {
-    cur.col += 1;
-  } else if cur.row < buf.len() {
-    cur.row += 1;
-    cur.col = 0;
+  if cur.row < buf.len() {
+    if cur.col < buf[cur.row].len() {
+      cur.col += 1;
+    } else {
+      cur.row += 1;
+      cur.col = 0;
+    }
   }
   align_cursor(cur, size);
 }
