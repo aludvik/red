@@ -225,7 +225,7 @@ fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
     }
     update_screen(&mut scr, &cur, buf, &size)?;
   }
-  Ok(())
+  clear_screen(&mut scr)
 }
 
 fn main() -> io::Result<()> {
