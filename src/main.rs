@@ -57,7 +57,7 @@ fn insert_at(ch: char, cur: &Cursor, buf: &mut Buffer) {
 }
 
 fn delete_at(cur: &Cursor, buf: &mut Buffer) {
-  buf[cur.row].remove(cur.col);
+  buf[cur.row].remove(cur.col - 1);
 }
 
 fn merge_into_above(cur: &Cursor, buf: &mut Buffer) {
