@@ -119,7 +119,6 @@ fn write_buffer_to_screen(
   buf: &Buffer,
   size: &Size,
 ) -> io::Result<()> {
-  write!(scr, "{}", termion::cursor::Goto(1, 1))?;
   let range = buffer_line_range(cur, size);
   let last = range.end - 1;
   for i in range {
@@ -133,7 +132,7 @@ fn write_buffer_to_screen(
 }
 
 fn clear_screen(scr: &mut Screen) -> io::Result<()> {
-  write!(scr, "{}", termion::clear::All)
+  write!(scr, "{}{}", termion::clear::All, termion::cursor::Goto(1, 1))
 }
 
 fn init_screen() -> io::Result<Screen> {
