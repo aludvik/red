@@ -57,9 +57,19 @@ fn insert_at(ch: char, cur: &Cursor, buf: &mut Buffer) {
 }
 
 fn delete_at(cur: &Cursor, buf: &mut Buffer) {
-  if cur.col > 0 {
-    buf[cur.row].remove(cur.col);
+  buf[cur.row].remove(cur.col);
+}
+
+fn merge_into_above(cur: &Cursor, buf: &mut Buffer) {
+  if cur.row > 0 {
+    let line = buf.remove(cur.row);
+    buf[cur.row - 1].push_str(&line);
   }
+}
+
+fn break_line_at(cur: &Cursor, buf: &mut Buffer) {
+  let new_line = buf[cur.row].split_off(cur.col);
+  buf.insert(cur.row+1, new_line);
 }
 
 type Screen = termion::raw::RawTerminal<io::Stdout>;
@@ -182,6 +192,44 @@ fn move_cursor_down(cur: &mut Cursor, buf: &Buffer, size: &Size) {
   align_cursor(cur, size);
 }
 
+fn return_cursor(cur: &mut Cursor) {
+  cur.row += 1;
+  cur.col = 0;
+}
+
+fn break_line_and_return_cursor(cur: &mut Cursor, buf: &mut Buffer) {
+  break_line_at(cur, buf);
+  return_cursor(cur);
+}
+
+fn insert_and_move_cursor(
+  ch: char,
+  cur: &mut Cursor,
+  buf: &mut Buffer,
+  size: &Size,
+) {
+  insert_at(ch, cur, buf);
+  move_cursor_right(cur, buf, size);
+}
+
+fn delete_and_move_cursor(
+  cur: &mut Cursor,
+  buf: &mut Buffer,
+  size: &Size,
+) {
+  if cur.col == 0 {
+    if cur.row > 0 {
+      let new_col = buf[cur.row - 1].len();
+      merge_into_above(cur, buf);
+      cur.row -= 1;
+      cur.col = new_col;
+    }
+  } else {
+    delete_at(cur, buf);
+    move_cursor_left(cur, buf, size);
+  }
+}
+
 type Key = termion::event::Key;
 
 fn get_screen_size() -> io::Result<Size> {
@@ -212,14 +260,9 @@ fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
       Key::Right => move_cursor_right(&mut cur, buf, &size),
       Key::Up => move_cursor_up(&mut cur, buf, &size),
       Key::Down => move_cursor_down(&mut cur, buf, &size),
-      Key::Char(ch) => {
-        insert_at(ch, &cur, buf);
-        move_cursor_right(&mut cur, buf, &size);
-      }
-      Key::Backspace => {
-        delete_at(&cur, buf);
-        move_cursor_left(&mut cur, buf, &size);
-      }
+      Key::Char('\n') => break_line_and_return_cursor(&mut cur, buf),
+      Key::Char(ch) => insert_and_move_cursor(ch, &mut cur, buf, &size),
+      Key::Backspace => delete_and_move_cursor(&mut cur, buf, &size),
       Key::Ctrl('s') => write_file(path, buf)?,
       _ => break,
     }
