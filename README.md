@@ -20,6 +20,13 @@ Red is a text editor. This file was written with red.
 
    Red has most, but not all, of the features you expect in a text editor.
 
+## Editing
+
+- `red [file]`: Open a new or existing file for editing
+- `Up`, `Down`, `Left`, `Right`: Move the cursor
+- `Ctrl+S`: Save the file
+- `Ctrl+C`: Quit
+
 ## FAQ
 
 1. Why write a new text editor?
