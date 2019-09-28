@@ -59,6 +59,9 @@ impl Cursor {
 }
 
 fn insert_at(ch: char, cur: &Cursor, buf: &mut Buffer) {
+  if cur.row == buf.len() {
+    buf.push(Line::new());
+  }
   buf[cur.row].insert(cur.col, ch)
 }
 
@@ -67,7 +70,7 @@ fn delete_at(cur: &Cursor, buf: &mut Buffer) {
 }
 
 fn merge_into_above(cur: &Cursor, buf: &mut Buffer) {
-  if cur.row > 0 {
+  if cur.row > 0 && cur.row < buf.len() {
     let line = buf.remove(cur.row);
     buf[cur.row - 1].push_str(&line);
   }
@@ -158,8 +161,8 @@ fn align_cursor(cur: &mut Cursor, size: &Size) {
   if cur.row < cur.top {
     cur.top = cur.row;
   }
-  if cur.row > cur.top + size.rows - 1 {
-    cur.top = cur.row - size.rows + 1;
+  if cur.row > cur.top + size.rows {
+    cur.top = cur.row - size.rows;
   }
 }
 
@@ -176,7 +179,7 @@ fn move_cursor_left(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 fn move_cursor_right(cur: &mut Cursor, buf: &Buffer, size: &Size) {
   if cur.col < buf[cur.row].len() {
     cur.col += 1;
-  } else if cur.row + 1 < buf.len() {
+  } else if cur.row < buf.len() {
     cur.row += 1;
     cur.col = 0;
   }
@@ -184,8 +187,12 @@ fn move_cursor_right(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 }
 
 fn truncate_cursor_to_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if cur.col > buf[cur.row].len() {
-    cur.col = buf[cur.row].len();
+  if cur.row < buf.len() {
+    if cur.col > buf[cur.row].len() {
+      cur.col = buf[cur.row].len();
+    }
+  } else {
+    cur.col = 0;
   }
   align_cursor(cur, size);
 }
@@ -199,7 +206,7 @@ fn move_cursor_up(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 }
 
 fn move_cursor_down(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  if cur.row + 1 < buf.len() {
+  if cur.row < buf.len() {
     cur.row += 1;
   }
   truncate_cursor_to_line(cur, buf, size);
