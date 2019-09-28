@@ -39,6 +39,12 @@ fn write_file(path: &str, buf: &Buffer) -> io::Result<()> {
   file.flush()
 }
 
+fn init_buffer_if_empty(buf: &mut Buffer) {
+  if buf.len() == 0 {
+    buf.push(String::new());
+  }
+}
+
 struct Cursor {
   col: usize,
   row: usize,
@@ -274,6 +280,7 @@ fn main() -> io::Result<()> {
   match env::args().skip(1).next() {
     Some(path) => {
       let mut buf = read_file(&path)?;
+      init_buffer_if_empty(&mut buf);
       edit_buffer(&path, &mut buf)
     }
     None => Ok(()),
