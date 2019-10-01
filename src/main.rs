@@ -12,7 +12,38 @@ use termion::{
 
 type Line = String;
 type Buffer = Vec<Line>;
+type Screen = termion::raw::RawTerminal<io::Stdout>;
+type Key = termion::event::Key;
 
+struct Cursor {
+  col: usize,
+  row: usize,
+  left: usize,
+  top: usize,
+}
+
+impl Cursor {
+  fn new() -> Self {
+    Cursor{col: 0, row: 0, left: 0, top: 0}
+  }
+}
+
+struct Size {
+  rows: usize,
+  cols: usize,
+}
+
+impl Size {
+  fn new<T: Into<usize>>(rows: T, cols: T) -> Self {
+    Size{rows: rows.into(), cols: cols.into()}
+  }
+}
+
+fn get_screen_size() -> io::Result<Size> {
+  termion::terminal_size().map(|(cols, rows)| Size::new(rows, cols))
+}
+
+// file system functions
 fn open_file(path: &str) -> io::Result<fs::File> {
   fs::OpenOptions::new().read(true).write(true).create(true).open(path)
 }
@@ -30,22 +61,10 @@ fn write_file(path: &str, buf: &Buffer) -> io::Result<()> {
   file.flush()
 }
 
+// buffer mutations
 fn init_buffer_if_empty(buf: &mut Buffer) {
   if buf.len() == 0 {
     buf.push(String::new());
-  }
-}
-
-struct Cursor {
-  col: usize,
-  row: usize,
-  left: usize,
-  top: usize,
-}
-
-impl Cursor {
-  fn new() -> Self {
-    Cursor{col: 0, row: 0, left: 0, top: 0}
   }
 }
 
@@ -72,21 +91,17 @@ fn break_line_at(cur: &Cursor, buf: &mut Buffer) {
   buf.insert(cur.row+1, new_line);
 }
 
-type Screen = termion::raw::RawTerminal<io::Stdout>;
-
-struct Size {
-  rows: usize,
-  cols: usize,
-}
-
-impl Size {
-  fn new<T: Into<usize>>(rows: T, cols: T) -> Self {
-    Size{rows: rows.into(), cols: cols.into()}
-  }
-}
-
+// screen updating
 fn buffer_char_range(cur: &Cursor, size: &Size) -> Range<usize> {
   cur.left..(cur.left + size.cols)
+}
+
+fn buffer_line_range(cur: &Cursor, size: &Size) -> Range<usize> {
+  cur.top..(cur.top + size.rows)
+}
+
+fn cursor_screen_position(cur: &Cursor) -> (u16, u16) {
+  ((cur.row - cur.top + 1) as u16, (cur.col - cur.left + 1) as u16)
 }
 
 fn write_line_to_screen(
@@ -103,14 +118,6 @@ fn write_line_to_screen(
     write!(scr, "{}", bytes[i] as char)?;
   }
   Ok(())
-}
-
-fn buffer_line_range(cur: &Cursor, size: &Size) -> Range<usize> {
-  cur.top..(cur.top + size.rows)
-}
-
-fn cursor_screen_position(cur: &Cursor) -> (u16, u16) {
-  ((cur.row - cur.top + 1) as u16, (cur.col - cur.left + 1) as u16)
 }
 
 fn write_buffer_to_screen(
@@ -142,6 +149,18 @@ fn init_screen() -> io::Result<Screen> {
   io::stdout().into_raw_mode()
 }
 
+fn update_screen(
+  scr: &mut Screen,
+  cur: &Cursor,
+  buf: &Buffer,
+  size: &Size,
+) -> io::Result<()> {
+  clear_screen(scr)?;
+  write_buffer_to_screen(scr, cur, buf, size)?;
+  scr.flush()
+}
+
+// Cursor movement
 fn align_cursor(cur: &mut Cursor, size: &Size) {
   if cur.col < cur.left {
     cur.left = cur.col;
@@ -211,6 +230,7 @@ fn return_cursor(cur: &mut Cursor) {
   cur.col = 0;
 }
 
+// Editing helpers
 fn break_line_and_return_cursor(cur: &mut Cursor, buf: &mut Buffer) {
   break_line_at(cur, buf);
   return_cursor(cur);
@@ -242,23 +262,6 @@ fn delete_and_move_cursor(
     delete_at(cur, buf);
     move_cursor_left(cur, buf, size);
   }
-}
-
-type Key = termion::event::Key;
-
-fn get_screen_size() -> io::Result<Size> {
-  termion::terminal_size().map(|(cols, rows)| Size::new(rows, cols))
-}
-
-fn update_screen(
-  scr: &mut Screen,
-  cur: &Cursor,
-  buf: &Buffer,
-  size: &Size,
-) -> io::Result<()> {
-  clear_screen(scr)?;
-  write_buffer_to_screen(scr, cur, buf, size)?;
-  scr.flush()
 }
 
 fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
