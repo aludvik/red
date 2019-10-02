@@ -1,5 +1,7 @@
 use super::*;
 
+use tempfile;
+
 fn check_range(
   cur: &Cursor,
   size: &Size,
@@ -26,6 +28,36 @@ fn apply_and_check(
 fn test_size() {
   let size = get_screen_size().unwrap();
   assert!(size.cols > size.rows);
+}
+
+#[test]
+fn test_file_system() {
+  let dir = tempfile::tempdir().unwrap();
+
+  { // open missing file
+    let path = dir.path().join("missing");
+    let result = read_file(&path.to_str().unwrap());
+    assert!(result.is_ok());
+    let buffer = result.unwrap();
+    assert_eq!(0, buffer.len());
+  }
+
+  { // write buffer to file
+    let path = dir.path().join("new");
+    let mut buffer = Buffer::new();
+    buffer.push(Line::from("test"));
+    let result = write_file(&path.to_str().unwrap(), &buffer);
+    assert!(result.is_ok());
+  }
+
+  { // open existing file
+    let path = dir.path().join("new");
+    let result = read_file(&path.to_str().unwrap());
+    assert!(result.is_ok());
+    let buffer = result.unwrap();
+    assert_eq!(1, buffer.len());
+    assert_eq!(Line::from("test"), buffer[0]);
+  }
 }
 
 #[test]

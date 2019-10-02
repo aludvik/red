@@ -1,3 +1,5 @@
+#[cfg(test)]
+extern crate tempfile;
 extern crate termion;
 
 #[cfg(test)]
