@@ -7,7 +7,7 @@ mod tests;
 
 use std::env;
 use std::fs;
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::ops::Range;
 
 use termion::{
@@ -17,7 +17,7 @@ use termion::{
 
 type Line = String;
 type Buffer = Vec<Line>;
-type Screen = termion::raw::RawTerminal<io::Stdout>;
+type Screen = io::BufWriter<termion::raw::RawTerminal<io::Stdout>>;
 type Key = termion::event::Key;
 
 struct Cursor {
@@ -167,7 +167,7 @@ fn clear_screen(scr: &mut Screen) -> io::Result<()> {
 }
 
 fn init_screen() -> io::Result<Screen> {
-  io::stdout().into_raw_mode()
+  io::stdout().into_raw_mode().map(BufWriter::new)
 }
 
 fn update_screen(
