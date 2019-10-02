@@ -12,7 +12,7 @@ fn test_size() {
 fn test_file_system() {
   let dir = tempfile::tempdir().unwrap();
 
-  { // open missing file
+  { // read missing file
     let path = dir.path().join("missing");
     let result = read_file(&path.to_str().unwrap());
     assert!(result.is_ok());
@@ -28,7 +28,7 @@ fn test_file_system() {
     assert!(result.is_ok());
   }
 
-  { // open existing file
+  { // read existing file
     let path = dir.path().join("new");
     let result = read_file(&path.to_str().unwrap());
     assert!(result.is_ok());

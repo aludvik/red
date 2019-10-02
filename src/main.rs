@@ -49,17 +49,23 @@ fn get_screen_size() -> io::Result<Size> {
 }
 
 // file system functions
-fn open_file(path: &str) -> io::Result<fs::File> {
-  fs::OpenOptions::new().read(true).write(true).create(true).open(path)
-}
-
 fn read_file(path: &str) -> io::Result<Buffer> {
-  let file = open_file(path)?;
-  BufReader::new(file).lines().collect()
+  match fs::OpenOptions::new().read(true).open(path) {
+    Ok(file) => BufReader::new(file).lines().collect(),
+    Err(err) => match err.kind() {
+      io::ErrorKind::NotFound => Ok(Buffer::new()),
+      _ => Err(err),
+    }
+  }
 }
 
 fn write_file(path: &str, buf: &Buffer) -> io::Result<()> {
-  let mut file = open_file(path)?;
+  let mut file = fs::OpenOptions::new()
+    .read(true)
+    .write(true)
+    .create(true)
+    .truncate(true)
+    .open(path)?;
   for line in buf {
     writeln!(file, "{}", line)?;
   }
