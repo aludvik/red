@@ -236,14 +236,14 @@ fn align_cursor(cur: &mut Cursor, size: &Size) {
   if cur.col < cur.left {
     cur.left = cur.col;
   }
-  if cur.col > cur.left + size.cols {
-    cur.left = cur.col - size.cols;
+  if cur.col > cur.left + size.cols - 1{
+    cur.left = cur.col - size.cols + 1;
   }
   if cur.row < cur.top {
     cur.top = cur.row;
   }
-  if cur.row > cur.top + size.rows {
-    cur.top = cur.row - size.rows;
+  if cur.row > cur.top + size.rows - 1{
+    cur.top = cur.row - size.rows + 1;
   }
 }
 
