@@ -17,7 +17,8 @@ use termion::{
 
 type Line = String;
 type Buffer = Vec<Line>;
-type Screen = io::BufWriter<termion::raw::RawTerminal<io::Stdout>>;
+type Screen =
+   io::BufWriter<termion::raw::RawTerminal<termion::screen::AlternateScreen<io::Stdout>>>;
 type Key = termion::event::Key;
 
 struct Cursor {
@@ -162,12 +163,20 @@ fn write_buffer_to_screen(
   write!(scr, "{}", termion::cursor::Goto(c, r))
 }
 
-fn clear_screen(scr: &mut Screen) -> io::Result<()> {
-  write!(scr, "{}{}", termion::clear::All, termion::cursor::Goto(1, 1))
+fn blank_screen(scr: &mut Screen, size: &Size) -> io::Result<()> {
+  write!(scr, "{}", termion::cursor::Goto(1, 1))?;
+  for _ in 0..size.rows {
+    for _ in 0..size.cols {
+      write!(scr, " ")?;
+    }
+    write!(scr, "\n\r")?;
+  }
+  write!(scr, "{}", termion::cursor::Goto(1, 1))
 }
 
 fn init_screen() -> io::Result<Screen> {
-  io::stdout().into_raw_mode().map(BufWriter::new)
+  termion::screen::AlternateScreen::from(io::stdout())
+    .into_raw_mode().map(BufWriter::new)
 }
 
 fn update_screen(
@@ -176,7 +185,7 @@ fn update_screen(
   buf: &Buffer,
   size: &Size,
 ) -> io::Result<()> {
-  clear_screen(scr)?;
+  blank_screen(scr, size)?;
   write_buffer_to_screen(scr, cur, buf, size)?;
   scr.flush()
 }
@@ -313,7 +322,7 @@ fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
     }
     update_screen(&mut scr, &cur, buf, &size)?;
   }
-  clear_screen(&mut scr)
+  Ok(())
 }
 
 fn main() -> io::Result<()> {
