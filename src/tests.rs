@@ -1,5 +1,7 @@
 use super::*;
 
+use std::panic;
+
 use tempfile;
 
 #[test]
@@ -36,6 +38,32 @@ fn test_file_system() {
     assert_eq!(1, buffer.len());
     assert_eq!(Line::from("test"), buffer[0]);
   }
+}
+
+#[test]
+fn test_buffer() {
+  let mut buf = Buffer::new();
+  assert_eq!(0, buf.len());
+
+  // Initializing buffer should only occur when empty
+  init_buffer_if_empty(&mut buf);
+  assert_eq!(1, buf.len());
+  assert_eq!(0, buf[0].len());
+  init_buffer_if_empty(&mut buf);
+  assert_eq!(1, buf.len());
+  assert_eq!(0, buf[0].len());
+
+  let mut cur = Cursor::new();
+  // Inserting at beginning of buffer and line
+  insert_at('a', &cur, &mut buf);
+  assert_eq!('a' as u8, buf[0].as_bytes()[0]);
+  // Inserting past end of file should panic
+  assert!(panic::catch_unwind(|| {
+    let mut buf = Buffer::new();
+    let mut cur = Cursor::new();
+    cur.row = buf.len();
+    insert_at('b', &cur, &mut buf);
+  }).is_err())
 }
 
 fn check_range(
