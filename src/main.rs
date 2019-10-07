@@ -81,7 +81,7 @@ fn init_buffer_if_empty(buf: &mut Buffer) {
 }
 
 fn insert_at(ch: char, cur: &Cursor, buf: &mut Buffer) {
-  if cur.row >= buf.len() {
+  if cur.row > buf.len() {
     panic!("tried to insert past end of buffer");
   }
   buf[cur.row].insert(cur.col, ch)
