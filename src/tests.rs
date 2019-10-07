@@ -87,6 +87,10 @@ fn test_cursor() {
   ];
   let size = Size::new(3usize, 2usize);
   let mut cur = Cursor::new();
+  assert_eq!(0, cur.top);
+  assert_eq!(0, cur.left);
+  assert_eq!(0, cur.col);
+  assert_eq!(0, cur.row);
 
   check_range(&cur, &size, 0..3, 0..2);
 
