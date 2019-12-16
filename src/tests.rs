@@ -53,7 +53,7 @@ fn test_buffer() {
   assert_eq!(1, buf.len());
   assert_eq!(0, buf[0].len());
 
-  let mut cur = Cursor::new();
+  let cur = Cursor::new();
   // Inserting at beginning of buffer and line
   insert_at('a', &cur, &mut buf);
   assert_eq!('a' as u8, buf[0].as_bytes()[0]);
