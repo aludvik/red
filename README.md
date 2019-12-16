@@ -10,15 +10,15 @@ Red is a text editor. This file was written with red.
 
 2. Small
 
-   As a terminal based text editor, red should have a small footprint.
+   Red has a small footprint so it's suitable for any environment.
 
 3. Zero Configuration
 
-   Red works the way you want out-of-the-box. No configuration required.
+   Red works the right way out-of-the-box. No configuration required.
 
-4. Most Features
+4. Best Features
 
-   Red has most, but not all, of the features you expect in a text editor.
+   Red has the features you need to write software effectively.
 
 ## Editing
 
@@ -36,4 +36,7 @@ Red is a text editor. This file was written with red.
 
 2. Why is it called red?
 
-   Red is an acronym for R(ed) Ed(itor).
+   - Red is an acronym for R(ed) Ed(itor).
+   - Red is the best color.
+   - Red is going to put his foot in your...
+   - Read is the opposite of write.
