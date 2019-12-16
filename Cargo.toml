@@ -4,8 +4,6 @@ version = "0.0.1"
 authors = ["Adam M Ludvik <adam.m.ludvik@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 termion="1"
 
