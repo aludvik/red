@@ -2,6 +2,8 @@
 extern crate tempfile;
 extern crate termion;
 
+mod buf;
+mod scr;
 #[cfg(test)]
 mod tests;
 
