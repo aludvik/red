@@ -4,6 +4,10 @@ use std::panic;
 
 use tempfile;
 
+pub fn assert_panics<F: FnOnce() + panic::UnwindSafe>(f: F) {
+  assert!(panic::catch_unwind(f).is_err());
+}
+
 #[test]
 fn test_size() {
   let size = get_screen_size().unwrap();
