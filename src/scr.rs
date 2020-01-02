@@ -76,34 +76,48 @@ impl<T: Write> Screen for TermionScreen<T> {
   }
 }
 
-pub struct Window {
+pub struct Window<'a> {
+  screen: &'a mut dyn Screen,
   pub position: Position,
   pub size: Size,
 }
 
-impl Window {
-  pub fn with_size(size: Size) -> Self {
-    Window{position: Position{row: 0, col: 0}, size}
+impl<'a> Window<'a> {
+  fn new(screen: &'a mut dyn Screen, position: Position, size: Size) -> Self {
+    Window{screen, position, size}
   }
-  pub fn with_size_at(size: Size, position: Position) -> Self {
-    Window{position, size}
-  }
-  pub fn put_at(
-    &self,
-    s: &str,
-    pos: Position,
-    scr: &mut dyn Screen,
-  ) -> io::Result<()> {
+  pub fn put_at(&mut self, s: &str, position: Position) -> io::Result<()> {
     println!("{:?}", self.position);
-    scr.put_at(s, self.position + pos)
+    self.screen.put_at(s, self.position + position)
   }
-  pub fn blank(&self, scr: &mut dyn Screen) -> io::Result<()> {
+  pub fn blank(&mut self) -> io::Result<()> {
     for row in 0..self.size.rows {
       for col in 0..self.size.cols {
-        self.put_at(" ", Position{row, col}, scr)?;
+        self.put_at(" ", Position{row, col})?;
       }
     }
     Ok(())
+  }
+}
+
+pub struct WindowManager<'a> {
+  screen: &'a mut dyn Screen,
+  windows: Vec<(Position, Size)>,
+}
+
+impl<'a> WindowManager<'a> {
+  pub fn new(screen: &'a mut dyn Screen) -> Self {
+    WindowManager{screen, windows: Vec::new()}
+  }
+  pub fn new_window(&mut self, position: Position, size: Size) -> usize {
+    self.windows.push((position, size));
+    self.windows.len() - 1
+  }
+  pub fn borrow_window<'b>(&'b mut self, window: usize) -> Option<Window<'b>> {
+    match self.windows.get(window) {
+      Some((pos, size)) => Some(Window::new(&mut *self.screen, *pos, *size)),
+      None => None
+    }
   }
 }
 
@@ -192,54 +206,74 @@ mod tests {
   }
 
   #[test]
-  fn test_put_at_window() {
+  fn test_put_at_window_origin() {
+    let mut mock = TestScreen::new(vec![
+      check_put_at("abc", Position{row: 0, col: 0}),
+      check_put_at("def", Position{row: 2, col: 5}),
+    ]);
     {
-      let win = Window::with_size(Size{rows: 10, cols: 10});
-      let mut mock = TestScreen::new(vec![
-        check_put_at("abc", Position{row: 0, col: 0}),
-        check_put_at("def", Position{row: 2, col: 5}),
-      ]);
-      win.put_at("abc", Position{row: 0, col: 0}, &mut mock).unwrap();
-      win.put_at("def", Position{row: 2, col: 5}, &mut mock).unwrap();
-      mock.assert_call_count();
-    } {
-      let win = Window::with_size_at(Size{rows: 10, cols: 10}, Position{row: 2, col: 4});
-      let mut mock = TestScreen::new(vec![
-        check_put_at("abc", Position{row: 2, col: 4}),
-        check_put_at("abc", Position{row: 4, col: 7}),
-      ]);
-      win.put_at("abc", Position{row: 0, col: 0}, &mut mock).unwrap();
-      win.put_at("abc", Position{row: 2, col: 3}, &mut mock).unwrap();
-      mock.assert_call_count();
+      let mut wm = WindowManager::new(&mut mock);
+      let wid = wm.new_window(Position{row: 0, col: 0}, Size{rows: 10, cols: 10});
+      {
+        let mut win = wm.borrow_window(wid).unwrap();
+        win.put_at("abc", Position{row: 0, col: 0}).unwrap();
+        win.put_at("def", Position{row: 2, col: 5}).unwrap();
+      }
     }
+    mock.assert_call_count();
   }
 
   #[test]
-  fn test_blank_window() {
+  fn test_put_at_window_offset() {
+    let mut mock = TestScreen::new(vec![
+      check_put_at("abc", Position{row: 2, col: 4}),
+      check_put_at("abc", Position{row: 4, col: 7}),
+    ]);
     {
-      let win = Window::with_size(Size{rows: 2, cols: 3});
-      let mut mock = TestScreen::new(vec![
-        check_put_at(" ", Position{row: 0, col: 0}),
-        check_put_at(" ", Position{row: 0, col: 1}),
-        check_put_at(" ", Position{row: 0, col: 2}),
-        check_put_at(" ", Position{row: 1, col: 0}),
-        check_put_at(" ", Position{row: 1, col: 1}),
-        check_put_at(" ", Position{row: 1, col: 2}),
-      ]);
-      win.blank(&mut mock).unwrap();
-      mock.assert_call_count();
-    } {
-      let win = Window::with_size_at(Size{rows: 3, cols: 2}, Position{row: 2, col: 4});
-      let mut mock = TestScreen::new(vec![
-        check_put_at(" ", Position{row: 2, col: 4}),
-        check_put_at(" ", Position{row: 2, col: 5}),
-        check_put_at(" ", Position{row: 3, col: 4}),
-        check_put_at(" ", Position{row: 3, col: 5}),
-        check_put_at(" ", Position{row: 4, col: 4}),
-        check_put_at(" ", Position{row: 4, col: 5}),
-      ]);
-      win.blank(&mut mock).unwrap();
-      mock.assert_call_count();
+      let mut wm = WindowManager::new(&mut mock);
+      let wid = wm.new_window(Position{row: 2, col: 4}, Size{rows: 10, cols: 10});
+      let mut win = wm.borrow_window(wid).unwrap();
+      win.put_at("abc", Position{row: 0, col: 0}).unwrap();
+      win.put_at("abc", Position{row: 2, col: 3}).unwrap();
     }
+    mock.assert_call_count();
+  }
+
+  #[test]
+  fn test_blank_window_origin() {
+    let mut mock = TestScreen::new(vec![
+      check_put_at(" ", Position{row: 0, col: 0}),
+      check_put_at(" ", Position{row: 0, col: 1}),
+      check_put_at(" ", Position{row: 0, col: 2}),
+      check_put_at(" ", Position{row: 1, col: 0}),
+      check_put_at(" ", Position{row: 1, col: 1}),
+      check_put_at(" ", Position{row: 1, col: 2}),
+    ]);
+    {
+      let mut wm = WindowManager::new(&mut mock);
+      let wid = wm.new_window(Position{row: 0, col: 0}, Size{rows: 2, cols: 3});
+      let mut win = wm.borrow_window(wid).unwrap();
+      win.blank().unwrap();
+    }
+    mock.assert_call_count();
+  }
+
+  #[test]
+  fn test_blank_window_offset() {
+    let mut mock = TestScreen::new(vec![
+      check_put_at(" ", Position{row: 2, col: 4}),
+      check_put_at(" ", Position{row: 2, col: 5}),
+      check_put_at(" ", Position{row: 3, col: 4}),
+      check_put_at(" ", Position{row: 3, col: 5}),
+      check_put_at(" ", Position{row: 4, col: 4}),
+      check_put_at(" ", Position{row: 4, col: 5}),
+    ]);
+    {
+      let mut wm = WindowManager::new(&mut mock);
+      let wid = wm.new_window(Position{row: 2, col: 4}, Size{rows: 3, cols: 2});
+      let mut win = wm.borrow_window(wid).unwrap();
+      win.blank().unwrap();
+    }
+    mock.assert_call_count();
   }
 }
