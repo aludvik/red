@@ -34,9 +34,10 @@ Red is a text editor. This file was written with red.
    I love vim, but sometimes it is a bit much. Red is a love letter to vim
    asking it why everything had to become so complicated.
 
-2. Why is it called red?
+2. Why red?
 
-   - Red is an acronym for R(ed) Ed(itor).
-   - Red is the best color.
-   - Red is going to put his foot in your...
-   - Read is the opposite of write.
+   - (R)ed (Ed)itor
+   - [(RED)](https://www.red.org/donate)
+   - (R)adical (Ed)ward
+   - (R)ust Text (Ed)itor
+   - (Red) Forman
