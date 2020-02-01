@@ -3,6 +3,8 @@ use std::ops::Add;
 
 use termion::{self, raw::IntoRawMode};
 
+pub type Key = termion::event::Key;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Position {
   pub row: u16,
@@ -109,11 +111,14 @@ impl<'a> WindowManager<'a> {
   pub fn new(screen: &'a mut dyn Screen) -> Self {
     WindowManager{screen, windows: Vec::new()}
   }
-  pub fn new_window(&mut self, position: Position, size: Size) -> usize {
+  pub fn create(&mut self, position: Position, size: Size) -> usize {
     self.windows.push((position, size));
     self.windows.len() - 1
   }
-  pub fn borrow_window<'b>(&'b mut self, window: usize) -> Option<Window<'b>> {
+  pub fn create_full(&mut self) -> io::Result<usize> {
+    self.screen.size().map(|size| self.create(Position{row: 0, col: 0}, size))
+  }
+  pub fn borrow_mut<'b>(&'b mut self, window: usize) -> Option<Window<'b>> {
     match self.windows.get(window) {
       Some((pos, size)) => Some(Window::new(&mut *self.screen, *pos, *size)),
       None => None
@@ -122,7 +127,7 @@ impl<'a> WindowManager<'a> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
   use super::*;
 
   use crate::tests::assert_panics;
@@ -132,7 +137,7 @@ mod tests {
   }
 
   impl TestScreenCall {
-    fn put_at<F: Fn(&str, Position) -> io::Result<()> + 'static>(call: F) -> Self {
+    pub fn put_at<F: Fn(&str, Position) -> io::Result<()> + 'static>(call: F) -> Self {
       TestScreenCall::PutAt(Box::new(call))
     }
   }
@@ -140,14 +145,17 @@ mod tests {
   pub struct TestScreen {
     calls: Vec<TestScreenCall>,
     call: usize,
+    size: Size,
   }
 
   impl TestScreen {
-    fn new(calls: Vec<TestScreenCall>) -> Self {
-      TestScreen{calls, call: 0}
+    pub fn new(calls: Vec<TestScreenCall>) -> Self {
+      TestScreen{calls, call: 0, size: Size{rows: 0, cols: 0}}
     }
-
-    fn assert_call_count(&self) {
+    pub fn with_size(calls: Vec<TestScreenCall>, size: Size) -> Self {
+      TestScreen{calls, call: 0, size}
+    }
+    pub fn assert_call_count(&self) {
       assert_eq!(self.call, self.calls.len());
     }
   }
@@ -161,10 +169,10 @@ mod tests {
       res
     }
     fn flush(&mut self) -> io::Result<()> {
-      unimplemented!();
+      Ok(())
     }
     fn size(&self) -> io::Result<Size> {
-      unimplemented!();
+      Ok(self.size)
     }
   }
 
@@ -213,9 +221,9 @@ mod tests {
     ]);
     {
       let mut wm = WindowManager::new(&mut mock);
-      let wid = wm.new_window(Position{row: 0, col: 0}, Size{rows: 10, cols: 10});
+      let wid = wm.create(Position{row: 0, col: 0}, Size{rows: 10, cols: 10});
       {
-        let mut win = wm.borrow_window(wid).unwrap();
+        let mut win = wm.borrow_mut(wid).unwrap();
         win.put_at("abc", Position{row: 0, col: 0}).unwrap();
         win.put_at("def", Position{row: 2, col: 5}).unwrap();
       }
@@ -231,8 +239,8 @@ mod tests {
     ]);
     {
       let mut wm = WindowManager::new(&mut mock);
-      let wid = wm.new_window(Position{row: 2, col: 4}, Size{rows: 10, cols: 10});
-      let mut win = wm.borrow_window(wid).unwrap();
+      let wid = wm.create(Position{row: 2, col: 4}, Size{rows: 10, cols: 10});
+      let mut win = wm.borrow_mut(wid).unwrap();
       win.put_at("abc", Position{row: 0, col: 0}).unwrap();
       win.put_at("abc", Position{row: 2, col: 3}).unwrap();
     }
@@ -251,8 +259,8 @@ mod tests {
     ]);
     {
       let mut wm = WindowManager::new(&mut mock);
-      let wid = wm.new_window(Position{row: 0, col: 0}, Size{rows: 2, cols: 3});
-      let mut win = wm.borrow_window(wid).unwrap();
+      let wid = wm.create(Position{row: 0, col: 0}, Size{rows: 2, cols: 3});
+      let mut win = wm.borrow_mut(wid).unwrap();
       win.blank().unwrap();
     }
     mock.assert_call_count();
@@ -270,8 +278,8 @@ mod tests {
     ]);
     {
       let mut wm = WindowManager::new(&mut mock);
-      let wid = wm.new_window(Position{row: 2, col: 4}, Size{rows: 3, cols: 2});
-      let mut win = wm.borrow_window(wid).unwrap();
+      let wid = wm.create(Position{row: 2, col: 4}, Size{rows: 3, cols: 2});
+      let mut win = wm.borrow_mut(wid).unwrap();
       win.blank().unwrap();
     }
     mock.assert_call_count();

@@ -158,7 +158,7 @@ impl Buffer {
   }
 
   // delete a character from the buffer just before the cursor
-  fn delete_before(&mut self, cur: &BufCursor) {
+  pub fn delete_before(&mut self, cur: &BufCursor) {
     if cur.col == 0 {
       panic!("tried to delete before beginning of buffer");
     }
@@ -172,7 +172,7 @@ impl Buffer {
   }
 
   // merge the line after this line with this line
-  fn merge_next_line_up(&mut self, cur: &BufCursor) {
+  pub fn merge_next_line_up(&mut self, cur: &BufCursor) {
     if cur.row + 1 >= self.height() {
       panic!("tried to merge line from past end of buffer");
     }
@@ -181,7 +181,7 @@ impl Buffer {
   }
 
   // create a new line and move the rest of this line to it
-  fn break_line_at(&mut self, cur: &BufCursor) {
+  pub fn break_line_at(&mut self, cur: &BufCursor) {
     if cur.row > self.height() {
       panic!("tried to break line past last row of buffer");
     }
