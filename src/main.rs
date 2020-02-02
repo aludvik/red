@@ -301,9 +301,22 @@ fn delete_and_move_cursor(cur: &mut Cursor, buf: &mut Buffer, size: &Size) {
   }
 }
 
+fn cut_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size) {
+  dst.push(src.remove(cur.row));
+  truncate_cursor_to_line(cur, src);
+  align_cursor(cur, size);
+}
+
+fn paste_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size) {
+  src.pop().map(|line| dst.insert(cur.row, line));
+  truncate_cursor_to_line(cur, dst);
+  align_cursor(cur, size);
+}
+
 fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
   let mut scr = init_screen()?;
   let mut cur = Cursor::new();
+  let mut clip = Buffer::new();
   let mut size = get_screen_size()?;
   update_screen(&mut scr, &cur, buf, &size)?;
   for res in io::stdin().keys() {
@@ -318,6 +331,8 @@ fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
       Key::Char(ch) => insert_and_move_cursor(ch, &mut cur, buf, &size),
       Key::Backspace => delete_and_move_cursor(&mut cur, buf, &size),
       Key::Ctrl('s') => write_file(path, buf)?,
+      Key::Ctrl('x') => cut_line(&mut cur, buf, &mut clip, &size),
+      Key::Ctrl('v') => paste_line(&mut cur, &mut clip, buf, &size),
       _ => break,
     }
     update_screen(&mut scr, &cur, buf, &size)?;
