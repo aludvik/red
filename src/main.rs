@@ -311,6 +311,10 @@ fn cut_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size) {
   align_cursor(cur, size);
 }
 
+fn copy_line(cur: &mut Cursor, src: &Buffer, dst: &mut Buffer) {
+  src.get(cur.row).map(|line| dst.push(line.clone()));
+}
+
 fn paste_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size) {
   src.pop().map(|line| dst.insert(cur.row, line));
   truncate_cursor_to_line(cur, dst);
@@ -339,6 +343,7 @@ fn handle_key_insert_mode(
     Key::Char(ch) => insert_and_move_cursor(ch, cur, buf, size),
     Key::Backspace => delete_and_move_cursor(cur, buf, size),
     Key::Ctrl('s') => write_file(path, buf)?,
+    Key::Ctrl('c') => copy_line(cur, buf, clip),
     Key::Ctrl('x') => cut_line(cur, buf, clip, size),
     Key::Ctrl('v') => paste_line(cur, clip, buf, size),
     Key::Ctrl('q') => return Ok(Mode::Quit),
