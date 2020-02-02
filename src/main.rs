@@ -216,6 +216,8 @@ fn move_cursor_right(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 fn move_cursor_up(cur: &mut Cursor, buf: &Buffer, size: &Size) {
   if cur.row > 0 {
     cur.row -= 1;
+  } else {
+    cur.row = buf.len();
   }
   truncate_cursor_to_line(cur, buf);
   align_cursor(cur, size);
@@ -224,6 +226,8 @@ fn move_cursor_up(cur: &mut Cursor, buf: &Buffer, size: &Size) {
 fn move_cursor_down(cur: &mut Cursor, buf: &Buffer, size: &Size) {
   if cur.row < buf.len() {
     cur.row += 1;
+  } else {
+    cur.row = 0;
   }
   truncate_cursor_to_line(cur, buf);
   align_cursor(cur, size);
