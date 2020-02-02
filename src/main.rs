@@ -317,27 +317,53 @@ fn paste_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size)
   align_cursor(cur, size);
 }
 
+enum Mode {
+  Insert,
+  Quit,
+}
+
+fn handle_key_insert_mode(
+  key: Key,
+  path: &str,
+  cur: &mut Cursor,
+  buf: &mut Buffer,
+  clip: &mut Buffer,
+  size: &Size
+) -> io::Result<Mode> {
+  match key {
+    Key::Left => move_cursor_left(cur, buf, size),
+    Key::Right => move_cursor_right(cur, buf, size),
+    Key::Up => move_cursor_up(cur, buf, size),
+    Key::Down => move_cursor_down(cur, buf, size),
+    Key::Char('\n') => break_line_and_return_cursor(cur, buf, size),
+    Key::Char(ch) => insert_and_move_cursor(ch, cur, buf, size),
+    Key::Backspace => delete_and_move_cursor(cur, buf, size),
+    Key::Ctrl('s') => write_file(path, buf)?,
+    Key::Ctrl('x') => cut_line(cur, buf, clip, size),
+    Key::Ctrl('v') => paste_line(cur, clip, buf, size),
+    Key::Ctrl('q') => return Ok(Mode::Quit),
+    _ => (),
+  };
+  Ok(Mode::Insert)
+}
+
 fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
   let mut scr = init_screen()?;
   let mut cur = Cursor::new();
   let mut clip = Buffer::new();
   let mut size = get_screen_size()?;
+  let mut mode = Mode::Insert;
   update_screen(&mut scr, &cur, buf, &size)?;
   for res in io::stdin().keys() {
     let key = res?;
     size = get_screen_size()?;
-    match key {
-      Key::Left => move_cursor_left(&mut cur, buf, &size),
-      Key::Right => move_cursor_right(&mut cur, buf, &size),
-      Key::Up => move_cursor_up(&mut cur, buf, &size),
-      Key::Down => move_cursor_down(&mut cur, buf, &size),
-      Key::Char('\n') => break_line_and_return_cursor(&mut cur, buf, &size),
-      Key::Char(ch) => insert_and_move_cursor(ch, &mut cur, buf, &size),
-      Key::Backspace => delete_and_move_cursor(&mut cur, buf, &size),
-      Key::Ctrl('s') => write_file(path, buf)?,
-      Key::Ctrl('x') => cut_line(&mut cur, buf, &mut clip, &size),
-      Key::Ctrl('v') => paste_line(&mut cur, &mut clip, buf, &size),
-      _ => break,
+    mode = match mode {
+      Mode::Insert => handle_key_insert_mode(key, path, &mut cur, buf, &mut clip, &size)?,
+      _ => Mode::Quit,
+    };
+    match mode {
+      Mode::Quit => break,
+      _ => (),
     }
     update_screen(&mut scr, &cur, buf, &size)?;
   }
