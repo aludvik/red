@@ -323,10 +323,27 @@ fn paste_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size)
 
 enum Mode {
   Insert,
+  Normal,
   Quit,
 }
 
 fn handle_key_insert_mode(
+  key: Key,
+  cur: &mut Cursor,
+  buf: &mut Buffer,
+  size: &Size
+) -> io::Result<Mode> {
+  match key {
+    Key::Char('\n') => break_line_and_return_cursor(cur, buf, size),
+    Key::Char(ch) => insert_and_move_cursor(ch, cur, buf, size),
+    Key::Backspace => delete_and_move_cursor(cur, buf, size),
+    Key::Esc => return Ok(Mode::Normal),
+    _ => (),
+  };
+  Ok(Mode::Insert)
+}
+
+fn handle_key_normal_mode(
   key: Key,
   path: &str,
   cur: &mut Cursor,
@@ -335,21 +352,21 @@ fn handle_key_insert_mode(
   size: &Size
 ) -> io::Result<Mode> {
   match key {
-    Key::Left => move_cursor_left(cur, buf, size),
-    Key::Right => move_cursor_right(cur, buf, size),
-    Key::Up => move_cursor_up(cur, buf, size),
-    Key::Down => move_cursor_down(cur, buf, size),
-    Key::Char('\n') => break_line_and_return_cursor(cur, buf, size),
-    Key::Char(ch) => insert_and_move_cursor(ch, cur, buf, size),
-    Key::Backspace => delete_and_move_cursor(cur, buf, size),
-    Key::Ctrl('s') => write_file(path, buf)?,
-    Key::Ctrl('c') => copy_line(cur, buf, clip),
-    Key::Ctrl('x') => cut_line(cur, buf, clip, size),
-    Key::Ctrl('v') => paste_line(cur, clip, buf, size),
-    Key::Ctrl('q') => return Ok(Mode::Quit),
+    Key::Char('i') => return Ok(Mode::Insert),
+    // movement
+    Key::Char('h') => move_cursor_left(cur, buf, size),
+    Key::Char('l') => move_cursor_right(cur, buf, size),
+    Key::Char('k') => move_cursor_up(cur, buf, size),
+    Key::Char('j') => move_cursor_down(cur, buf, size),
+    // cut-paste buffer
+    Key::Char('c') => copy_line(cur, buf, clip),
+    Key::Char('v') => paste_line(cur, clip, buf, size),
+    Key::Char('d') => cut_line(cur, buf, clip, size),
+    Key::Char('s') => write_file(path, buf)?,
+    Key::Char('q') => return Ok(Mode::Quit),
     _ => (),
   };
-  Ok(Mode::Insert)
+  Ok(Mode::Normal)
 }
 
 fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
@@ -357,13 +374,14 @@ fn edit_buffer(path: &str, buf: &mut Buffer) -> io::Result<()> {
   let mut cur = Cursor::new();
   let mut clip = Buffer::new();
   let mut size = get_screen_size()?;
-  let mut mode = Mode::Insert;
+  let mut mode = Mode::Normal;
   update_screen(&mut scr, &cur, buf, &size)?;
   for res in io::stdin().keys() {
     let key = res?;
     size = get_screen_size()?;
     mode = match mode {
-      Mode::Insert => handle_key_insert_mode(key, path, &mut cur, buf, &mut clip, &size)?,
+      Mode::Insert => handle_key_insert_mode(key, &mut cur, buf, &size)?,
+      Mode::Normal => handle_key_normal_mode(key, path, &mut cur, buf, &mut clip, &size)?,
       _ => Mode::Quit,
     };
     match mode {
