@@ -163,15 +163,8 @@ fn write_buffer_to_screen(
   write!(scr, "{}", termion::cursor::Goto(c, r))
 }
 
-fn blank_screen(scr: &mut Screen, size: &Size) -> io::Result<()> {
-  write!(scr, "{}", termion::cursor::Goto(1, 1))?;
-  for _ in 0..size.rows {
-    for _ in 0..size.cols {
-      write!(scr, " ")?;
-    }
-    write!(scr, "\n\r")?;
-  }
-  write!(scr, "{}", termion::cursor::Goto(1, 1))
+fn blank_screen(scr: &mut Screen) -> io::Result<()> {
+  write!(scr, "{}{}", termion::cursor::Goto(1, 1), termion::clear::All)
 }
 
 fn init_screen() -> io::Result<Screen> {
@@ -185,7 +178,7 @@ fn update_screen(
   buf: &Buffer,
   size: &Size,
 ) -> io::Result<()> {
-  blank_screen(scr, size)?;
+  blank_screen(scr)?;
   write_buffer_to_screen(scr, cur, buf, size)?;
   scr.flush()
 }
