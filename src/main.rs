@@ -87,11 +87,21 @@ fn insert_at(ch: char, cur: &Cursor, buf: &mut Buffer) {
   buf[cur.row].insert(cur.col, ch)
 }
 
-fn delete_at(cur: &Cursor, buf: &mut Buffer) {
+fn delete_before(cur: &Cursor, buf: &mut Buffer) {
   if cur.col == 0 {
     panic!("tried to delete before start of buffer");
   }
   buf[cur.row].remove(cur.col - 1);
+}
+
+fn delete_at(cur: &Cursor, buf: &mut Buffer) {
+  if cur.row >= buf.len() {
+    panic!("tried to delete after end of buffer");
+  }
+  if cur.col >= buf[cur.row].len() {
+    panic!("tried to delete after end of line");
+  }
+  buf[cur.row].remove(cur.col);
 }
 
 fn merge_next_line_into(cur: &Cursor, buf: &mut Buffer) {
@@ -286,9 +296,17 @@ fn insert_and_move_cursor(
   move_cursor_right(cur, buf, size);
 }
 
+fn delete_in_place(cur: &mut Cursor, buf: &mut Buffer, _size: &Size) {
+  if cur.row < buf.len() && cur.col < buf[cur.row].len() {
+    delete_at(cur, buf);
+  } else if cur.row + 1 < buf.len() && cur.col == buf[cur.row].len() {
+    merge_next_line_into(cur, buf);
+  }
+}
+
 fn delete_and_move_cursor(cur: &mut Cursor, buf: &mut Buffer, size: &Size) {
   if cur.col > 0 {
-    delete_at(cur, buf);
+    delete_before(cur, buf);
     move_cursor_left(cur, buf, size);
   } else if cur.row > 0 {
     move_cursor_end_of_prev_line(cur, buf, size);
@@ -335,6 +353,7 @@ fn handle_key_insert_mode(
   match key {
     Key::Char('\n') => break_line_and_return_cursor(cur, buf, size),
     Key::Char(ch) => insert_and_move_cursor(ch, cur, buf, size),
+    Key::Delete => delete_in_place(cur, buf, size),
     Key::Backspace => delete_and_move_cursor(cur, buf, size),
     Key::Esc => return Ok(Mode::Normal),
     _ => (),
