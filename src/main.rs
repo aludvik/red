@@ -357,6 +357,10 @@ fn handle_key_normal_mode(
     Key::Char('l') => move_cursor_right(cur, buf, size),
     Key::Char('k') => move_cursor_up(cur, buf, size),
     Key::Char('j') => move_cursor_down(cur, buf, size),
+    Key::Char('H') => for _ in 0..5 { move_cursor_left(cur, buf, size) },
+    Key::Char('L') => for _ in 0..5 { move_cursor_right(cur, buf, size) },
+    Key::Char('K') => for _ in 0..5 { move_cursor_up(cur, buf, size) },
+    Key::Char('J') => for _ in 0..5 { move_cursor_down(cur, buf, size) },
     // cut-paste buffer
     Key::Char('d') => delete_line(cur, buf, size),
     Key::Char('c') => copy_line(cur, buf, clip),
