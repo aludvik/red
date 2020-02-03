@@ -254,6 +254,58 @@ fn move_cursor_start_of_next_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
   align_cursor(cur, size);
 }
 
+fn is_whitespace(c: char) -> bool {
+  match c {
+    ' ' => true,
+    '\n' => true,
+    '\t' => true,
+    _ => false,
+  }
+}
+
+fn is_blank(cur: &mut Cursor, buf: &Buffer) -> bool {
+  cur.row >= buf.len() || buf[cur.row].len() == cur.col || is_whitespace(buf[cur.row].as_bytes()[cur.col] as char)
+}
+
+fn is_blank_line(cur: &mut Cursor, buf: &Buffer) -> bool {
+  if cur.row < buf.len() && buf[cur.row].len() > 0 {
+    for c in buf[cur.row].chars() {
+      if !is_whitespace(c) {
+        return false;
+      }
+    }
+  }
+  true
+}
+
+fn move_cursor_to_next_blank(cur: &mut Cursor, buf: &Buffer, size: &Size) {
+  move_cursor_right(cur, buf, size);
+  while !is_blank(cur, buf) {
+    move_cursor_right(cur, buf, size);
+  }
+}
+
+fn move_cursor_to_prev_blank(cur: &mut Cursor, buf: &Buffer, size: &Size) {
+  move_cursor_left(cur, buf, size);
+  while !is_blank(cur, buf) {
+    move_cursor_left(cur, buf, size);
+  }
+}
+
+fn move_cursor_to_next_blank_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
+  move_cursor_down(cur, buf, size);
+  while !is_blank_line(cur, buf) {
+    move_cursor_down(cur, buf, size);
+  }
+}
+
+fn move_cursor_to_prev_blank_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
+  move_cursor_up(cur, buf, size);
+  while !is_blank_line(cur, buf) {
+    move_cursor_up(cur, buf, size);
+  }
+}
+
 fn align_cursor(cur: &mut Cursor, size: &Size) {
   if cur.col < cur.left {
     cur.left = cur.col;
@@ -377,10 +429,10 @@ fn handle_key_normal_mode(
     Key::Char('l') => move_cursor_right(cur, buf, size),
     Key::Char('k') => move_cursor_up(cur, buf, size),
     Key::Char('j') => move_cursor_down(cur, buf, size),
-    Key::Char('H') => for _ in 0..5 { move_cursor_left(cur, buf, size) },
-    Key::Char('L') => for _ in 0..5 { move_cursor_right(cur, buf, size) },
-    Key::Char('K') => for _ in 0..5 { move_cursor_up(cur, buf, size) },
-    Key::Char('J') => for _ in 0..5 { move_cursor_down(cur, buf, size) },
+    Key::Char('H') => move_cursor_to_prev_blank(cur, buf, size),
+    Key::Char('L') => move_cursor_to_next_blank(cur, buf, size),
+    Key::Char('K') => move_cursor_to_prev_blank_line(cur, buf, size),
+    Key::Char('J') => move_cursor_to_next_blank_line(cur, buf, size),
     // cut-paste buffer
     Key::Char('d') => delete_line(cur, buf, size),
     Key::Char('c') => copy_line(cur, buf, clip, size),
