@@ -298,6 +298,12 @@ fn delete_and_move_cursor(cur: &mut Cursor, buf: &mut Buffer, size: &Size) {
   }
 }
 
+fn delete_line(cur: &mut Cursor, src: &mut Buffer, size: &Size) {
+  src.remove(cur.row);
+  truncate_cursor_to_line(cur, src);
+  align_cursor(cur, size);
+}
+
 fn cut_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size) {
   dst.push(src.remove(cur.row));
   truncate_cursor_to_line(cur, src);
@@ -352,9 +358,10 @@ fn handle_key_normal_mode(
     Key::Char('k') => move_cursor_up(cur, buf, size),
     Key::Char('j') => move_cursor_down(cur, buf, size),
     // cut-paste buffer
+    Key::Char('d') => delete_line(cur, buf, size),
     Key::Char('c') => copy_line(cur, buf, clip),
     Key::Char('v') => paste_line(cur, clip, buf, size),
-    Key::Char('d') => cut_line(cur, buf, clip, size),
+    Key::Char('x') => cut_line(cur, buf, clip, size),
     Key::Char('s') => write_file(path, buf)?,
     Key::Char('q') => return Ok(Mode::Quit),
     _ => (),
