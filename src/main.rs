@@ -254,17 +254,16 @@ fn move_cursor_start_of_next_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
   align_cursor(cur, size);
 }
 
+fn get_char(cur: &mut Cursor, buf: &Buffer) -> char {
+  buf[cur.row].as_bytes()[cur.col] as char
+}
+
 fn is_whitespace(c: char) -> bool {
-  match c {
-    ' ' => true,
-    '\n' => true,
-    '\t' => true,
-    _ => false,
-  }
+  c.is_ascii_whitespace()
 }
 
 fn is_blank(cur: &mut Cursor, buf: &Buffer) -> bool {
-  cur.row >= buf.len() || buf[cur.row].len() == cur.col || is_whitespace(buf[cur.row].as_bytes()[cur.col] as char)
+  cur.row >= buf.len() || buf[cur.row].len() == cur.col || is_whitespace(get_char(cur, buf))
 }
 
 fn is_blank_line(cur: &mut Cursor, buf: &Buffer) -> bool {
@@ -279,29 +278,37 @@ fn is_blank_line(cur: &mut Cursor, buf: &Buffer) -> bool {
 }
 
 fn move_cursor_to_next_blank(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  move_cursor_right(cur, buf, size);
   while !is_blank(cur, buf) {
+    move_cursor_right(cur, buf, size);
+  }
+  while is_blank(cur, buf) {
     move_cursor_right(cur, buf, size);
   }
 }
 
 fn move_cursor_to_prev_blank(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  move_cursor_left(cur, buf, size);
   while !is_blank(cur, buf) {
+    move_cursor_left(cur, buf, size);
+  }
+  while is_blank(cur, buf) {
     move_cursor_left(cur, buf, size);
   }
 }
 
 fn move_cursor_to_next_blank_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  move_cursor_down(cur, buf, size);
   while !is_blank_line(cur, buf) {
+    move_cursor_down(cur, buf, size);
+  }
+  while is_blank_line(cur, buf) {
     move_cursor_down(cur, buf, size);
   }
 }
 
 fn move_cursor_to_prev_blank_line(cur: &mut Cursor, buf: &Buffer, size: &Size) {
-  move_cursor_up(cur, buf, size);
   while !is_blank_line(cur, buf) {
+    move_cursor_up(cur, buf, size);
+  }
+  while is_blank_line(cur, buf) {
     move_cursor_up(cur, buf, size);
   }
 }
