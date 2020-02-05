@@ -431,6 +431,14 @@ fn handle_key_normal_mode(
 ) -> io::Result<Mode> {
   match key {
     Key::Char('i') => return Ok(Mode::Insert),
+    Key::Delete => {
+      delete_in_place(cur, buf, size);
+      return Ok(Mode::Insert);
+    }
+    Key::Backspace => {
+      delete_and_move_cursor(cur, buf, size);
+      return Ok(Mode::Insert);
+    }
     // movement
     Key::Char('h') => move_cursor_left(cur, buf, size),
     Key::Char('l') => move_cursor_right(cur, buf, size),
