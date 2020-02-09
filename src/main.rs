@@ -136,18 +136,55 @@ fn cursor_screen_position(cur: &Cursor) -> (u16, u16) {
   ((cur.row - cur.top + 1) as u16, (cur.col - cur.left + 1) as u16)
 }
 
+fn replace_invisibles(c: char) -> char {
+  match c {
+    '\t' => '\u{00BB}',
+    ' ' => '\u{0387}',
+    '\n' => '\u{00AC}',
+    c => c,
+  }
+}
+
+fn set_normal_colors(scr: &mut Screen) -> io::Result<()> {
+  write!(scr, "{}", termion::color::Fg(termion::color::Reset))
+}
+
+fn set_invisible_colors(scr: &mut Screen) -> io::Result<()> {
+  write!(scr, "{}", termion::color::Fg(termion::color::LightBlack))
+}
+
+fn write_invisible_to_screen(scr: &mut Screen, mut c: char) -> io::Result<()> {
+  c = replace_invisibles(c);
+  set_invisible_colors(scr)?;
+  write!(scr, "{}", c)?;
+  set_normal_colors(scr)
+}
+
+fn write_char_to_screen(scr: &mut Screen, c: char) -> io::Result<()> {
+  match c {
+    '\t' | ' ' => write_invisible_to_screen(scr, c),
+    c => write!(scr, "{}", c),
+  }
+}
+
+fn write_line_end(scr: &mut Screen) -> io::Result<()> {
+  write_invisible_to_screen(scr, '\n')
+}
+
 fn write_line_to_screen(
   scr: &mut Screen,
   cur: &Cursor,
   line: &Line,
   size: &Size,
 ) -> io::Result<()> {
+  set_normal_colors(scr)?;
   let bytes = line.as_bytes();
   for i in buffer_char_range(cur, size) {
     if i >= line.len() {
+      write_line_end(scr)?;
       break;
     }
-    write!(scr, "{}", bytes[i] as char)?;
+    write_char_to_screen(scr, bytes[i] as char)?;
   }
   Ok(())
 }
