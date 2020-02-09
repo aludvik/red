@@ -387,9 +387,8 @@ fn cut_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size) {
   align_cursor(cur, size);
 }
 
-fn copy_line(cur: &mut Cursor, src: &Buffer, dst: &mut Buffer, size: &Size) {
+fn copy_line(cur: &mut Cursor, src: &Buffer, dst: &mut Buffer) {
   src.get(cur.row).map(|line| dst.push(line.clone()));
-  move_cursor_down(cur, src, size);
 }
 
 fn paste_line(cur: &mut Cursor, src: &mut Buffer, dst: &mut Buffer, size: &Size) {
@@ -450,7 +449,10 @@ fn handle_key_normal_mode(
     Key::Char('J') => move_cursor_to_next_blank_line(cur, buf, size),
     // cut-paste buffer
     Key::Char('d') => delete_line(cur, buf, size),
-    Key::Char('c') => copy_line(cur, buf, clip, size),
+    Key::Char('c') => {
+      copy_line(cur, buf, clip);
+      move_cursor_down(cur, buf, size);
+    },
     Key::Char('v') => paste_line(cur, clip, buf, size),
     Key::Char('x') => cut_line(cur, buf, clip, size),
     Key::Char('s') => write_file(path, buf)?,
