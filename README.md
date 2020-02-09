@@ -1,31 +1,48 @@
 # Red
 
-Red is a text editor. This file was written with red.
+Red is a text editor, specialized for editing source code.
 
 ## Goals
 
-1. Simple
+1. Zero Configuration
 
-   Red is simple to install and simple to use.
+   Red works the right way out-of-the-box.
 
-2. Small
+2. Most Important Features
 
-   Red has a small footprint so it's suitable for any environment.
+   Red has the right features for writing software.
 
-3. Zero Configuration
+3. Small
 
-   Red works the right way out-of-the-box. No configuration required.
+   Red has a minimal install size and uses minimal resources.
 
-4. Right Features
+4. Simple
 
-   Red has the features you need to write software effectively.
+   Red is simple to install and start using.
 
 ## Editing
 
-- `red [file]`: Open a new or existing file for editing
-- `Up`, `Down`, `Left`, `Right`: Move the cursor
-- `Ctrl+S`: Save the file
-- `Ctrl+C`: Quit
+Red is a modal text editor. The editor starts in "normal" mode.
+
+To open a new or existing file for editing, just type `red [file]`.
+
+The clipboard used for cutting and pasting lines is a stack.
+
+### Normal Mode
+
+- `j`, `k`, `l`, `h`: Move the cursor
+- `J`, `K`, `L`, `H`: Move the cursor between whitespace
+- `i`: Enter insert mode
+- `d`: Delete the current line
+- `x`: Cut the current line and insert it into the clipboard
+- `c`: Copy the current line and insert it into the clipboard
+- `v`: Insert the top line from the clipboard and remove it from the clipboard
+- `s`: Save the file
+- `q`: Quit
+
+### Insert Mode
+
+- `Escape`: Enter normal mode
 
 ## FAQ
 
