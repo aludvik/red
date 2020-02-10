@@ -1,6 +1,8 @@
 #[cfg(test)]
 extern crate tempfile;
 extern crate termion;
+#[macro_use]
+extern crate lazy_static;
 
 #[cfg(test)]
 mod tests;
@@ -145,12 +147,23 @@ fn replace_invisibles(c: char) -> char {
   }
 }
 
+lazy_static! {
+  static ref SET_NORMAL_COLORS: Vec<u8> = format!(
+    "{}",
+    termion::color::Fg(termion::color::Reset),
+  ).into_bytes();
+  static ref SET_INVISIBLE_COLORS: Vec<u8> = format!(
+    "{}",
+    termion::color::Fg(termion::color::LightBlack),
+  ).into_bytes();
+}
+
 fn set_normal_colors(scr: &mut Screen) -> io::Result<()> {
-  write!(scr, "{}", termion::color::Fg(termion::color::Reset))
+  scr.write(&SET_NORMAL_COLORS).map(|_|())
 }
 
 fn set_invisible_colors(scr: &mut Screen) -> io::Result<()> {
-  write!(scr, "{}", termion::color::Fg(termion::color::LightBlack))
+  scr.write(&SET_INVISIBLE_COLORS).map(|_|())
 }
 
 fn write_invisible_to_screen(scr: &mut Screen, mut c: char) -> io::Result<()> {

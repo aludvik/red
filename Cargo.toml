@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 termion="1"
+lazy_static="1"
 
 [dev-dependencies]
 tempfile="3"
